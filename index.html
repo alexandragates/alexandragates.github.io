@@ -1,0 +1,279 @@
+Theme
+
+``` r
+agtheme <- theme(axis.ticks.x = element_blank(),
+                 axis.ticks.y = element_blank(),
+                 axis.title = element_text(face = "italic", color = "#2d2e2e", size = 9),
+                 axis.title.x = element_text(margin = margin(t = 15)),
+                 axis.title.y = element_text(margin = margin(r= 15)),
+                 axis.text = element_text(color = "#999a9c", size = 7),
+                 
+                 legend.key = element_rect(fill = "#f0f0f0"),
+                 legend.background = element_rect(fill = "#f0f0f0"),
+                 legend.text = element_text(color = "#6b6b6d", size = 8),
+                 legend.title = element_text(color = "#2d2e2e", size = 10),
+                 legend.position = "bottom",
+                 
+                 panel.background = element_rect(fill = "#f0f0f0"),
+                 panel.grid.major = element_line(color = "#dbdde0"),
+                 panel.grid.minor = element_blank(),
+                 
+                 plot.title = element_text(size=15, color = "#2d2e2e", face = "bold", margin = margin(r = 10)),
+                 plot.subtitle = element_text(size=10, color = "#6b6b6d", margin = margin(t=5, b=15)),
+                 plot.caption = element_text(size=8, color = "#6b6b6d", margin = margin(t=5)),
+                 plot.margin = unit(c(1,1,.5,.5), "cm"),
+                 plot.background = element_rect(fill = "#f0f0f0"))
+```
+
+Plot 1: A line graph of uninsured rates by region over time, also showing how large the populations affected by each uninsured rate is.
+
+``` r
+p1 <- ggplot(data = joinagg, aes(x = year, y = `weighted mean`, group = Region, color = Region)) +
+  geom_line(size = 1.2, alpha = .8) +
+  geom_point(aes(size = `total under 65`), alpha = .8) +
+  geom_vline(xintercept = 2014, color = "#2d2e2e", size = 2, linetype = "dashed", alpha = .8) +
+  
+  labs(title = "Uninsured rates in the most populous region remain higher than\nthe rest of the US.",
+       subtitle = "Weighted Mean Percent Uninsured Under 65, 2012 - 2015",
+       caption = "Note: Thick black line indicates implementation of the Affordable Care Act (ACA).\nSource: American Community Survey, 2012-2015", 
+       color = "Region",
+       size = "Under 65\n(in millions)",
+       x = "Year", 
+       y = "Percent Uninsured Under 65") +
+  
+  scale_color_viridis(option = "plasma", discrete = TRUE, alpha = .8) +
+  scale_size_continuous(breaks = c(50000000, 65000000, 80000000, 95000000), labels = c("50M", "65M", "80M", "95M")) +
+  
+  agtheme
+  
+p1
+```
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
+Plot 2: Waffle chart showing change between 2013 and 2016 uninsured rates for each gender.
+
+``` r
+gender_rates_2012 <- c(`Male Uninsured 2012 (9%)` = 9, `Male Insured 2012 (41%)` = 41, `Female Uninsured 2012 (8%)` = 8, `Female Insured 2012 (42%)` = 42)
+g_waffles_2012 <- waffle(gender_rates_2012, rows=5, size=1.5, 
+                         colors=c("#2394b2", "#98c8d5", "#D52432", "#e7c4c6"), 
+                         title="\nBetween 2012 and 2016, both males and females saw\ndecreases in their uninsured rates.\n")
+gender_rates_2016 <- c(`Male Uninsured 2016 (5%)` = 5, `Male Insured 2016 (44%)` = 44, `Female Uninsured 2016 (5%)` = 5, `Female Insured 2016 (46%)` = 46)
+g_waffles_2016 <- waffle(gender_rates_2016, rows=5, size=1.5, 
+                         colors=c("#2394b2", "#98c8d5", "#D52432", "#e7c4c6"), 
+                         xlab="\n1 square = 1 percent\n\nSource: American Community Survey, 2012 & 2016")
+
+multiplot(g_waffles_2012, g_waffles_2016, cols = 1)
+```
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-6-1.png)
+
+Plot 3: Waffle chart showing change between 2013 and 2016 uninsured rates for whites and hispanics.
+
+``` r
+race_rates_2012 <- c(`White Uninsured 2012 (8%)` = 8, `White Insured 2012 (53%)` = 53, `Hispanic Uninsured 2012 (6%)` = 6, `Hispanic Insured 2012 (13%)` = 13, `Other Race (20%)` = 20)
+r_waffles_2012 <- waffle(race_rates_2012, rows=5, size=1, 
+                         colors=c("#c89f0d", "#d5c899", "#5b582b", "#bcb66f", "#cfcfcf"), 
+                         title="\nBetween 2012 and 2016, both whites and hispanics saw\ndecreases in their uninsured rates.\n")
+
+race_rates_2016 <- c(`White Uninsured 2016 (4%)` = 4, `White Insured 2016 (54%)` = 54, `Hispanic Uninsured 2016 (4%)` = 4, `Hispanic Insured 2016 (16%)` = 16, `Other Race (22%)` = 22)
+r_waffles_2016 <- waffle(race_rates_2016, rows=5, size=1, 
+                         colors=c("#c89f0d", "#d5c899", "#5b582b", "#bcb66f", "#cfcfcf"), 
+                         xlab="\n1 square = 1 percent\n\nSource: American Community Survey, 2012 & 2016")
+
+multiplot(r_waffles_2012, r_waffles_2016, cols = 1)
+```
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-8-1.png)
+
+Plot 4: Treemap of hispanic uninsured rates 2016 by state and region in 2012.
+
+``` r
+p4 <- ggplot(acs2012, aes(area = `total hisp under 65`, fill = `percent hisp uninsured under 65`, label = Abreviation, subgroup = Region)) +
+  geom_treemap(alpha = .8) +
+  geom_treemap_subgroup_border(color = "#f0f0f0", size = 5) +
+  geom_treemap_subgroup_text(place = "bottom", alpha = 0.7, colour =
+                               "#2d2e2e", fontface = "bold", size = 12, padding.y = grid::unit(2, "mm")) +
+  geom_treemap_text(colour = "white", place = "topleft", reflow = T, padding.x = grid::unit(1.5, "mm"), padding.y = grid::unit(1.5, "mm")) +
+
+    scale_fill_viridis(option = "plasma", guide = guide_colorbar(reverse=TRUE), alpha = .8) +
+  
+  labs(title = "Hispanics in southern states continue to have some of the highest\nuninsured rates in the nation.",
+       subtitle = "Percent of uninsured hispanics under 65 by state and region, 2012",
+       caption = "Note: Squares are total hispanic population under 65 in each region.\nSource: American Community Survey, 2012", 
+       fill = "Percent Uninsured\nUnder 65 (Hispanic)") +
+  
+  agtheme
+p4
+```
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-10-1.png)
+
+Plot 5: Treemap of hispanic uninsured rates 2016 by state and region in 2012.
+
+``` r
+p5 <- ggplot(acs2016, aes(area = `total hisp under 65`, fill = `percent hisp uninsured under 65`, label = Abreviation, subgroup = Region)) +
+  geom_treemap(alpha = .8) +
+  geom_treemap_subgroup_border(color = "#f0f0f0", size = 5) +
+  geom_treemap_subgroup_text(place = "bottom", alpha = 0.5, colour =
+                               "#2d2e2e", fontface = "bold", size = 12, padding.y = grid::unit(2, "mm")) +
+  geom_treemap_text(colour = "white", place = "topleft", reflow = T, padding.x = grid::unit(1.5, "mm"), padding.y = grid::unit(1.5, "mm")) +
+  
+  scale_fill_viridis(option = "plasma", guide = guide_colorbar(reverse=TRUE), alpha = .8) +
+
+  labs(title = "Hispanics in southern states continue to have some of the highest\nuninsured rates in the nation.",
+       subtitle = "Percent of uninsured hispanics under 65 by state and region, 2016",
+       caption = "Note: Squares are total hispanic population under 65 in each region.\nSource: American Community Survey, 2016", 
+       fill = "Percent Uninsured\nUnder 65 (Hispanic)") +
+
+  agtheme
+
+p5
+```
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-12-1.png)
+
+Plot 6: Map showing variation in uninsured rates across the US in 2016.
+
+``` r
+p6 <- ggplot() + 
+  geom_map(data = states, map = states, aes(x = long, y = lat, map_id = region), 
+           fill = "#ffffff", color = "#ffffff", size = 0.15, alpha = .8) +
+  geom_map(data = acs2016, map = states, aes(fill = `percent uninsured under 65`, map_id = region), 
+           color = "#ffffff", size = 0.15, alpha = .8) +
+  scale_fill_viridis(option = "plasma") +
+  theme(axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        
+        legend.key = element_rect(fill = "#f0f0f0"),
+        legend.background = element_rect(fill = "#f0f0f0"),
+        legend.text = element_text(color = "#6b6b6d", size = 8),
+        legend.title = element_text(face = "bold", color = "#2d2e2e", size = 10),
+        legend.position = "bottom",
+        
+        panel.background = element_rect(fill = "#f0f0f0"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        
+        plot.title = element_text(size=15, color = "#2d2e2e", face = "bold", margin = margin(r = 10)),
+        plot.subtitle = element_text(size=10, color = "#6b6b6d", margin = margin(t=5, b=15)),
+        plot.caption = element_text(size=8, color = "#6b6b6d", margin = margin(t=5)),
+        plot.margin = unit(c(1,1,.5,.5), "cm"),
+        plot.background = element_rect(fill = "#f0f0f0")) +
+  labs(title = "Even in 2016, uninsured rates vary widely across states.",
+       subtitle = "Percent uninsured under 65 by state, 2016",
+       caption = "Source: American Community Survey, 2016", 
+       fill = "Percent Uninsured\nUnder 65") +
+  
+  coord_map()
+```
+
+    ## Warning: Ignoring unknown aesthetics: x, y
+
+``` r
+p6
+```
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-14-1.png)
+
+Plot 7: Jitter plot comparing uninsured rates to the percent of the population reporting of fair/poor health status in 2016.
+
+``` r
+p7 <- ggplot(data = join_acs_fairpoor_2016, aes(x = percent_uninsured_over18, y = fair_poor_health_status_percent)) +
+  geom_jitter(aes(color = Region, size=total_over18), alpha = 0.8) +
+  geom_smooth(se = FALSE, color = "#2d2e2e", alpha = 0.8) +
+  
+  labs(title = "Greater uninsured rates are associated with higher reporting of fair/poor health.",
+       subtitle = "Percent Uninsured over 18 and Percent Reporting Fair/Poor Health Status, by Region and Population Size, 2016",
+       caption = "Note: All populations are over 18. Each dot represents a state.\nSource: Percent uninsured from American Community Survey, 2016.\nPercent fair/poor from Behavioral Risk Factor Surveillence Survey, 2016.", 
+       color = "Region",
+       size = "Over 18\n(in millions)",
+       x = "Percent Uninsured", 
+       y = "Percent Reporting Fair/Poor Health Status") +
+  
+  scale_color_viridis(option = "plasma", discrete = TRUE, alpha = .8) +
+  scale_size_continuous(breaks = c(5000000, 15000000, 25000000), labels = c("5M", "15M", "25M")) +
+  
+  agtheme +
+  theme(legend.position = "bottom")
+
+p7
+```
+
+    ## `geom_smooth()` using method = 'loess'
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-16-1.png)
+
+Plot 8: Map showing variance of fair/poor health status reporting across the US in 2016.
+
+``` r
+p8 <- ggplot() + 
+  geom_map(data = states, map = states, aes(x = long, y = lat, map_id = region), 
+           fill = "#ffffff", color = "#ffffff", size = 0.15, alpha = .8) +
+  geom_map(data = join_acs_fairpoor_2016, map = states, aes(fill = fair_poor_health_status_percent, map_id = region), 
+           color = "#ffffff", size = 0.15, alpha = .8) +
+  scale_fill_viridis(option = "plasma") +
+  theme(axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        
+        legend.key = element_rect(fill = "#f0f0f0"),
+        legend.background = element_rect(fill = "#f0f0f0"),
+        legend.text = element_text(color = "#6b6b6d", size = 8),
+        legend.title = element_text(face = "bold", color = "#2d2e2e", size = 10),
+        legend.position = "bottom",
+        
+        panel.background = element_rect(fill = "#f0f0f0"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        
+        plot.title = element_text(size=15, color = "#2d2e2e", face = "bold", margin = margin(r = 10)),
+        plot.subtitle = element_text(size=10, color = "#6b6b6d", margin = margin(t=5, b=15)),
+        plot.caption = element_text(size=8, color = "#6b6b6d", margin = margin(t=5)),
+        plot.margin = unit(c(1,1,.5,.5), "cm"),
+        plot.background = element_rect(fill = "#f0f0f0")) +
+  labs(title = "In 2016, fair or poor health is more often reported in southern states.",
+       subtitle = "Percent reporting fair or poor health status, 2016",
+       caption = "Note: population is over 18.\nSource: Behavioral Risk Factor Surveillance Survey, 2016", 
+       fill = "Percent Reporting Fair or Poor Health") +
+  
+  coord_map()
+```
+
+    ## Warning: Ignoring unknown aesthetics: x, y
+
+``` r
+p8
+```
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-18-1.png)
+
+Plot 9: Bar graph comparing fair/poor health status reporting by race per region in 2016.
+
+``` r
+p9 <- ggplot(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, fill = race), position = "dodge") +
+  geom_bar(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, fill = race), position = "dodge", stat = "identity") +
+  
+  labs(title = "Hispanics are much more likely to report having fair or poor health.",
+       subtitle = "Percent Reporting Fair or Poor Health Status by Race and Region, 2016",
+       caption = "Note: population is over 18. States with insufficient data for Blacks and Hispanics were removed.\nSource: Behavioral Risk Factor Surveillance Survey, 2016", 
+       fill = "Race",
+       x = "Region", 
+       y = "Percent Reporting Fair/Poor Health") +
+  
+  scale_fill_viridis(option = "plasma", discrete = TRUE, labels = c("Black", "Hispanic", "White")) +
+  
+  agtheme + 
+  theme(axis.text.x = element_text(color = "#6b6b6d", size = 10)) +
+  
+  ylim(0, 40)
+
+p9
+```
+
+    ## Warning: Removed 37 rows containing missing values (geom_bar).
+
+![](DV-Assignment5_files/figure-markdown_github/unnamed-chunk-20-1.png)
