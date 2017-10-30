@@ -1,1 +1,1 @@
-# Health Policy Data Visualization Portfolio by Alexandra Gates
+# Health Policy Data Visualization Portfolio
