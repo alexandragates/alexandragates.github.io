@@ -1,0 +1,677 @@
+---
+title: "Health Policy Data Visualizations Portfolio"
+author: "Alexandra Gates"
+date: "October 29, 2017"
+output: html_document
+---
+
+```{r include=FALSE}
+#libraries
+library(tidyverse)
+library(extrafont)
+extrafont::loadfonts(device="win")
+library(ggplot2)
+library(jsonlite)
+library(httr)
+library(plyr)
+library(dplyr)
+library(reshape2)
+library(rmarkdown)
+library(geofacet)
+library(treemapify)
+library(haven)
+library(waffle)
+library(gridExtra)
+library(viridis)
+library(hexbin)
+library(ggthemes)
+library(maps)
+library(mapproj)
+loadfonts()
+
+# Multiple plot function
+# code taken from: http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }}}
+
+#get state data
+state_info <- read_csv("C:\\Users\\Alix\ Gates\\Documents\\UChicago\\Data\ Visualization\\Git\ Hub\ Repo\\name_to_abrev.csv")
+
+# 2012 data
+acs2012g <- read_json("https://api.census.gov/data/2012/acs1?get=NAME,B27001_001E,B27001_002E,B27001_004E,B27001_005E,B27001_007E,B27001_008E,B27001_010E,B27001_011E,B27001_013E,B27001_014E,B27001_016E,B27001_017E,B27001_019E,B27001_020E,B27001_022E,B27001_023E,B27001_030E,B27001_032E,B27001_033E,B27001_035E,B27001_036E,B27001_038E,B27001_039E,B27001_041E,B27001_042E,B27001_044E,B27001_045E,B27001_047E,B27001_048E,B27001_050E,B27001_051E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2012r <- read_json("https://api.census.gov/data/2012/acs1?get=NAME,B27001H_003E,B27001H_004E,B27001H_006E,B27001H_007E,B27001H_009E,B27001H_010E,B27001H_012E,B27001H_013E,B27001H_015E,B27001H_016E,B27001H_018E,B27001H_019E,B27001H_021E,B27001H_022E,B27001I_003E,B27001I_004E,B27001I_006E,B27001I_007E,B27001I_009E,B27001I_010E,B27001I_012E,B27001I_013E,B27001I_015E,B27001I_016E,B27001I_018E,B27001I_019E,B27001I_021E,B27001I_022E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+
+#join data
+acs2012 <- join(acs2012g, acs2012r, by = "V1")
+
+# change column names
+colnames(acs2012) <- c("Name", "Insurance Status Total", "Total Male", "Male Under 6 w Insurance", "Male Under 6 wo Insurance", "Male Under 6-17 w Insurance", "Male Under 6-17 wo Insurance", "Male Under 18-24 w Insurance", "Male Under 18-24 wo Insurance", "Male Under 25-34 w Insurance", "Male Under 25-34 wo Insurance", "Male Under 35-44 w Insurance", "Male Under 35-44 wo Insurance", "Male Under 45-54 w Insurance", "Male Under 45-54 wo Insurance", "Male Under 55-64 w Insurance", "Male Under 55-64 wo Insurance",
+                       "Total Female", "Female Under 6 w Insurance", "Female Under 6 wo Insurance", "Female Under 6-17 w Insurance", "Female Under 6-17 wo Insurance", "Female Under 18-24 w Insurance", "Female Under 18-24 wo Insurance", "Female Under 25-34 w Insurance", "Female Under 25-34 wo Insurance", "Female Under 35-44 w Insurance", "Female Under 35-44 wo Insurance", "Female Under 45-54 w Insurance", "Female Under 45-54 wo Insurance", "Female Under 55-64 w Insurance", "Female Under 55-64 wo Insurance", "fips code",
+                       "white under 6 w insurance", "white under 6 wo insurance", "white 6-17 w insurance", "white 6-17 wo insurance", "white 18-24 w insurance", "white 18-24 wo insurance", "white 25-34 w insurance", "white 25-34 wo insurance", "white 35-44 w insurance", "white 35-44 wo insurance", "white 45-54 w insurance", "white 45-54 wo insurance", "white 55-64 w insurance", "white 55-64 wo insurance",
+                       "hisp under 6 w insurance", "hisp under 6 wo insurance", "hisp 6-17 w insurance", "hisp 6-17 wo insurance", "hisp 18-24 w insurance", "hisp 18-24 wo insurance", "hisp 25-34 w insurance", "hisp 25-34 wo insurance", "hisp 35-44 w insurance", "hisp 35-44 wo insurance", "hisp 45-54 w insurance", "hisp 45-54 wo insurance", "hisp 55-64 w insurance", "hisp 55-64 wo insurance", "fips code2")
+# delete first row
+acs2012 <- acs2012[-1,]
+acs2012 <- acs2012[-52,]
+
+# change all from factors to characters
+acs2012[] <- lapply(acs2012[], function(x) as.character(x))
+
+# change all but name and fips codes from characters to numerics
+acs2012[2:62] <- lapply(acs2012[2:62], function(x) as.numeric(x))
+
+# join 2012 data with state info to include state abreviation and region
+acs2012 <- left_join(acs2012, state_info, by = "Name")
+
+# add a column of the data's year
+acs2012$year<- 2012
+acs2012$Year<- "2012"
+
+# do additional calculations
+acs2012 <- mutate(acs2012,
+                  `total male under 65` = `Male Under 6 w Insurance` + `Male Under 6 wo Insurance` + `Male Under 6-17 w Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 w Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 w Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 w Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 w Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 w Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total male insured under 65` = `Male Under 6 w Insurance` + `Male Under 6-17 w Insurance` + `Male Under 18-24 w Insurance` + `Male Under 25-34 w Insurance` + `Male Under 35-44 w Insurance` + `Male Under 45-54 w Insurance` + `Male Under 55-64 w Insurance`,
+                  `total male uninsured under 65` = `Male Under 6 wo Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total female under 65` = `Female Under 6 w Insurance` + `Female Under 6 wo Insurance` + `Female Under 6-17 w Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 w Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 w Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 w Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 w Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 w Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total female insured under 65` = `Female Under 6 w Insurance` + `Female Under 6-17 w Insurance` + `Female Under 18-24 w Insurance` + `Female Under 25-34 w Insurance` + `Female Under 35-44 w Insurance` + `Female Under 45-54 w Insurance` + `Female Under 55-64 w Insurance`,
+                  `total female uninsured under 65` = `Female Under 6 wo Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total uninsured under 65` = `total male uninsured under 65` + `total female uninsured under 65`,
+                  `percent uninsured under 65` = (`total male uninsured under 65` + `total female uninsured under 65`) / (`total male under 65` + `total female under 65`) * 100,
+                  `percent of males under 65 who are insured` = (`total male insured under 65` / `total male under 65`) * 100,
+                  `percent of males under 65 who are uninsured` = (`total male uninsured under 65` / `total male under 65`) * 100,
+                  `percent of females under 65 who are insured` = (`total female insured under 65` / `total female under 65`) * 100,
+                  `percent of females under 65 who are uninsured` = (`total female uninsured under 65` / `total female under 65`) * 100,
+                  `percent of uninsured under 65 who are male` = (`total male uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of uninsured under 65 who are female` = (`total female uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of insured under 65 who are male` = (`total male insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `percent of insured under 65 who are female` = (`total female insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `total under 65` = `total male under 65` + `total female under 65`,
+                  `total white under 65` = `white under 6 w insurance` + `white under 6 wo insurance`+ `white 6-17 w insurance`+ `white 6-17 wo insurance`+ `white 18-24 w insurance`+ `white 18-24 wo insurance`+ `white 25-34 w insurance`+ `white 25-34 wo insurance`+ `white 35-44 w insurance`+ `white 35-44 wo insurance`+ `white 45-54 w insurance`+ `white 45-54 wo insurance`+ `white 55-64 w insurance`+ `white 55-64 wo insurance`,
+                  `total white uninsured under 65` = `white under 6 wo insurance`+ `white 6-17 wo insurance`+ `white 18-24 wo insurance`+ `white 25-34 wo insurance`+ `white 35-44 wo insurance`+ `white 45-54 wo insurance`+ `white 55-64 wo insurance`,
+                  `percent white uninsured under 65` = (`total white uninsured under 65` / `total white under 65`) * 100,
+                  `total hisp under 65` = `hisp under 6 w insurance`+ `hisp under 6 wo insurance`+ `hisp 6-17 w insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 w insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 w insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 w insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 w insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 w insurance`+ `hisp 55-64 wo insurance`,
+                  `total hisp uninsured under 65` = `hisp under 6 wo insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 wo insurance`,
+                  `percent hisp uninsured under 65` = (`total hisp uninsured under 65` / `total hisp under 65`) * 100)
+
+# 2013 data - all the same actions as 2012 data
+acs2013g <- read_json("https://api.census.gov/data/2013/acs1?get=NAME,B27001_001E,B27001_002E,B27001_004E,B27001_005E,B27001_007E,B27001_008E,B27001_010E,B27001_011E,B27001_013E,B27001_014E,B27001_016E,B27001_017E,B27001_019E,B27001_020E,B27001_022E,B27001_023E,B27001_030E,B27001_032E,B27001_033E,B27001_035E,B27001_036E,B27001_038E,B27001_039E,B27001_041E,B27001_042E,B27001_044E,B27001_045E,B27001_047E,B27001_048E,B27001_050E,B27001_051E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2013r <- read_json("https://api.census.gov/data/2013/acs1?get=NAME,B27001H_003E,B27001H_004E,B27001H_006E,B27001H_007E,B27001H_009E,B27001H_010E,B27001H_012E,B27001H_013E,B27001H_015E,B27001H_016E,B27001H_018E,B27001H_019E,B27001H_021E,B27001H_022E,B27001I_003E,B27001I_004E,B27001I_006E,B27001I_007E,B27001I_009E,B27001I_010E,B27001I_012E,B27001I_013E,B27001I_015E,B27001I_016E,B27001I_018E,B27001I_019E,B27001I_021E,B27001I_022E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2013 <- join(acs2013g, acs2013r, by = "V1")
+colnames(acs2013) <- c("Name", "Insurance Status Total", "Total Male", "Male Under 6 w Insurance", "Male Under 6 wo Insurance", "Male Under 6-17 w Insurance", "Male Under 6-17 wo Insurance", "Male Under 18-24 w Insurance", "Male Under 18-24 wo Insurance", "Male Under 25-34 w Insurance", "Male Under 25-34 wo Insurance", "Male Under 35-44 w Insurance", "Male Under 35-44 wo Insurance", "Male Under 45-54 w Insurance", "Male Under 45-54 wo Insurance", "Male Under 55-64 w Insurance", "Male Under 55-64 wo Insurance",
+                       "Total Female", "Female Under 6 w Insurance", "Female Under 6 wo Insurance", "Female Under 6-17 w Insurance", "Female Under 6-17 wo Insurance", "Female Under 18-24 w Insurance", "Female Under 18-24 wo Insurance", "Female Under 25-34 w Insurance", "Female Under 25-34 wo Insurance", "Female Under 35-44 w Insurance", "Female Under 35-44 wo Insurance", "Female Under 45-54 w Insurance", "Female Under 45-54 wo Insurance", "Female Under 55-64 w Insurance", "Female Under 55-64 wo Insurance", "fips code",
+                       "white under 6 w insurance", "white under 6 wo insurance", "white 6-17 w insurance", "white 6-17 wo insurance", "white 18-24 w insurance", "white 18-24 wo insurance", "white 25-34 w insurance", "white 25-34 wo insurance", "white 35-44 w insurance", "white 35-44 wo insurance", "white 45-54 w insurance", "white 45-54 wo insurance", "white 55-64 w insurance", "white 55-64 wo insurance",
+                       "hisp under 6 w insurance", "hisp under 6 wo insurance", "hisp 6-17 w insurance", "hisp 6-17 wo insurance", "hisp 18-24 w insurance", "hisp 18-24 wo insurance", "hisp 25-34 w insurance", "hisp 25-34 wo insurance", "hisp 35-44 w insurance", "hisp 35-44 wo insurance", "hisp 45-54 w insurance", "hisp 45-54 wo insurance", "hisp 55-64 w insurance", "hisp 55-64 wo insurance", "fips code2")
+acs2013 <- acs2013[-1,]
+acs2013 <- acs2013[-52,]
+acs2013[] <- lapply(acs2013[], function(x) as.character(x))
+acs2013[2:62] <- lapply(acs2013[2:62], function(x) as.numeric(x))
+acs2013 <- left_join(acs2013, state_info, by = "Name")
+acs2013$year<- 2013
+acs2013$Year<- "2013"
+acs2013 <- mutate(acs2013,
+                  `total male under 65` = `Male Under 6 w Insurance` + `Male Under 6 wo Insurance` + `Male Under 6-17 w Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 w Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 w Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 w Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 w Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 w Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total male insured under 65` = `Male Under 6 w Insurance` + `Male Under 6-17 w Insurance` + `Male Under 18-24 w Insurance` + `Male Under 25-34 w Insurance` + `Male Under 35-44 w Insurance` + `Male Under 45-54 w Insurance` + `Male Under 55-64 w Insurance`,
+                  `total male uninsured under 65` = `Male Under 6 wo Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total female under 65` = `Female Under 6 w Insurance` + `Female Under 6 wo Insurance` + `Female Under 6-17 w Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 w Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 w Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 w Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 w Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 w Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total female insured under 65` = `Female Under 6 w Insurance` + `Female Under 6-17 w Insurance` + `Female Under 18-24 w Insurance` + `Female Under 25-34 w Insurance` + `Female Under 35-44 w Insurance` + `Female Under 45-54 w Insurance` + `Female Under 55-64 w Insurance`,
+                  `total female uninsured under 65` = `Female Under 6 wo Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total uninsured under 65` = `total male uninsured under 65` + `total female uninsured under 65`,
+                  `percent uninsured under 65` = (`total male uninsured under 65` + `total female uninsured under 65`) / (`total male under 65` + `total female under 65`) * 100,
+                  `percent of males under 65 who are insured` = (`total male insured under 65` / `total male under 65`) * 100,
+                  `percent of males under 65 who are uninsured` = (`total male uninsured under 65` / `total male under 65`) * 100,
+                  `percent of females under 65 who are insured` = (`total female insured under 65` / `total female under 65`) * 100,
+                  `percent of females under 65 who are uninsured` = (`total female uninsured under 65` / `total female under 65`) * 100,
+                  `percent of uninsured under 65 who are male` = (`total male uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of uninsured under 65 who are female` = (`total female uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of insured under 65 who are male` = (`total male insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `percent of insured under 65 who are female` = (`total female insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `total under 65` = `total male under 65` + `total female under 65`,
+                  `total white under 65` = `white under 6 w insurance` + `white under 6 wo insurance`+ `white 6-17 w insurance`+ `white 6-17 wo insurance`+ `white 18-24 w insurance`+ `white 18-24 wo insurance`+ `white 25-34 w insurance`+ `white 25-34 wo insurance`+ `white 35-44 w insurance`+ `white 35-44 wo insurance`+ `white 45-54 w insurance`+ `white 45-54 wo insurance`+ `white 55-64 w insurance`+ `white 55-64 wo insurance`,
+                  `total white uninsured under 65` = `white under 6 wo insurance`+ `white 6-17 wo insurance`+ `white 18-24 wo insurance`+ `white 25-34 wo insurance`+ `white 35-44 wo insurance`+ `white 45-54 wo insurance`+ `white 55-64 wo insurance`,
+                  `percent white uninsured under 65` = (`total white uninsured under 65` / `total white under 65`) * 100,
+                  `total hisp under 65` = `hisp under 6 w insurance`+ `hisp under 6 wo insurance`+ `hisp 6-17 w insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 w insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 w insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 w insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 w insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 w insurance`+ `hisp 55-64 wo insurance`,
+                  `total hisp uninsured under 65` = `hisp under 6 wo insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 wo insurance`,
+                  `percent hisp uninsured under 65` = (`total hisp uninsured under 65` / `total hisp under 65`) * 100)
+
+# 2014 data - all the same actions as 2012 data
+acs2014g <- read_json("https://api.census.gov/data/2014/acs1?get=NAME,B27001_001E,B27001_002E,B27001_004E,B27001_005E,B27001_007E,B27001_008E,B27001_010E,B27001_011E,B27001_013E,B27001_014E,B27001_016E,B27001_017E,B27001_019E,B27001_020E,B27001_022E,B27001_023E,B27001_030E,B27001_032E,B27001_033E,B27001_035E,B27001_036E,B27001_038E,B27001_039E,B27001_041E,B27001_042E,B27001_044E,B27001_045E,B27001_047E,B27001_048E,B27001_050E,B27001_051E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2014r <- read_json("https://api.census.gov/data/2014/acs1?get=NAME,B27001H_003E,B27001H_004E,B27001H_006E,B27001H_007E,B27001H_009E,B27001H_010E,B27001H_012E,B27001H_013E,B27001H_015E,B27001H_016E,B27001H_018E,B27001H_019E,B27001H_021E,B27001H_022E,B27001I_003E,B27001I_004E,B27001I_006E,B27001I_007E,B27001I_009E,B27001I_010E,B27001I_012E,B27001I_013E,B27001I_015E,B27001I_016E,B27001I_018E,B27001I_019E,B27001I_021E,B27001I_022E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2014 <- join(acs2014g, acs2014r, by = "V1")
+colnames(acs2014) <- c("Name", "Insurance Status Total", "Total Male", "Male Under 6 w Insurance", "Male Under 6 wo Insurance", "Male Under 6-17 w Insurance", "Male Under 6-17 wo Insurance", "Male Under 18-24 w Insurance", "Male Under 18-24 wo Insurance", "Male Under 25-34 w Insurance", "Male Under 25-34 wo Insurance", "Male Under 35-44 w Insurance", "Male Under 35-44 wo Insurance", "Male Under 45-54 w Insurance", "Male Under 45-54 wo Insurance", "Male Under 55-64 w Insurance", "Male Under 55-64 wo Insurance",
+                       "Total Female", "Female Under 6 w Insurance", "Female Under 6 wo Insurance", "Female Under 6-17 w Insurance", "Female Under 6-17 wo Insurance", "Female Under 18-24 w Insurance", "Female Under 18-24 wo Insurance", "Female Under 25-34 w Insurance", "Female Under 25-34 wo Insurance", "Female Under 35-44 w Insurance", "Female Under 35-44 wo Insurance", "Female Under 45-54 w Insurance", "Female Under 45-54 wo Insurance", "Female Under 55-64 w Insurance", "Female Under 55-64 wo Insurance", "fips code",
+                       "white under 6 w insurance", "white under 6 wo insurance", "white 6-17 w insurance", "white 6-17 wo insurance", "white 18-24 w insurance", "white 18-24 wo insurance", "white 25-34 w insurance", "white 25-34 wo insurance", "white 35-44 w insurance", "white 35-44 wo insurance", "white 45-54 w insurance", "white 45-54 wo insurance", "white 55-64 w insurance", "white 55-64 wo insurance",
+                       "hisp under 6 w insurance", "hisp under 6 wo insurance", "hisp 6-17 w insurance", "hisp 6-17 wo insurance", "hisp 18-24 w insurance", "hisp 18-24 wo insurance", "hisp 25-34 w insurance", "hisp 25-34 wo insurance", "hisp 35-44 w insurance", "hisp 35-44 wo insurance", "hisp 45-54 w insurance", "hisp 45-54 wo insurance", "hisp 55-64 w insurance", "hisp 55-64 wo insurance", "fips code2")
+acs2014 <- acs2014[-1,]
+acs2014 <- acs2014[-52,]
+acs2014[] <- lapply(acs2014[], function(x) as.character(x))
+acs2014[2:62] <- lapply(acs2014[2:62], function(x) as.numeric(x))
+acs2014 <- left_join(acs2014, state_info, by = "Name")
+acs2014$year<- 2014
+acs2014$Year<- "2014"
+acs2014 <- mutate(acs2014,
+                  `total male under 65` = `Male Under 6 w Insurance` + `Male Under 6 wo Insurance` + `Male Under 6-17 w Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 w Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 w Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 w Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 w Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 w Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total male insured under 65` = `Male Under 6 w Insurance` + `Male Under 6-17 w Insurance` + `Male Under 18-24 w Insurance` + `Male Under 25-34 w Insurance` + `Male Under 35-44 w Insurance` + `Male Under 45-54 w Insurance` + `Male Under 55-64 w Insurance`,
+                  `total male uninsured under 65` = `Male Under 6 wo Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total female under 65` = `Female Under 6 w Insurance` + `Female Under 6 wo Insurance` + `Female Under 6-17 w Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 w Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 w Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 w Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 w Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 w Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total female insured under 65` = `Female Under 6 w Insurance` + `Female Under 6-17 w Insurance` + `Female Under 18-24 w Insurance` + `Female Under 25-34 w Insurance` + `Female Under 35-44 w Insurance` + `Female Under 45-54 w Insurance` + `Female Under 55-64 w Insurance`,
+                  `total female uninsured under 65` = `Female Under 6 wo Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total uninsured under 65` = `total male uninsured under 65` + `total female uninsured under 65`,
+                  `percent uninsured under 65` = (`total male uninsured under 65` + `total female uninsured under 65`) / (`total male under 65` + `total female under 65`) * 100,
+                  `percent of males under 65 who are insured` = (`total male insured under 65` / `total male under 65`) * 100,
+                  `percent of males under 65 who are uninsured` = (`total male uninsured under 65` / `total male under 65`) * 100,
+                  `percent of females under 65 who are insured` = (`total female insured under 65` / `total female under 65`) * 100,
+                  `percent of females under 65 who are uninsured` = (`total female uninsured under 65` / `total female under 65`) * 100,
+                  `percent of uninsured under 65 who are male` = (`total male uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of uninsured under 65 who are female` = (`total female uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of insured under 65 who are male` = (`total male insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `percent of insured under 65 who are female` = (`total female insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `total under 65` = `total male under 65` + `total female under 65`,
+                  `total white under 65` = `white under 6 w insurance` + `white under 6 wo insurance`+ `white 6-17 w insurance`+ `white 6-17 wo insurance`+ `white 18-24 w insurance`+ `white 18-24 wo insurance`+ `white 25-34 w insurance`+ `white 25-34 wo insurance`+ `white 35-44 w insurance`+ `white 35-44 wo insurance`+ `white 45-54 w insurance`+ `white 45-54 wo insurance`+ `white 55-64 w insurance`+ `white 55-64 wo insurance`,
+                  `total white uninsured under 65` = `white under 6 wo insurance`+ `white 6-17 wo insurance`+ `white 18-24 wo insurance`+ `white 25-34 wo insurance`+ `white 35-44 wo insurance`+ `white 45-54 wo insurance`+ `white 55-64 wo insurance`,
+                  `percent white uninsured under 65` = (`total white uninsured under 65` / `total white under 65`) * 100,
+                  `total hisp under 65` = `hisp under 6 w insurance`+ `hisp under 6 wo insurance`+ `hisp 6-17 w insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 w insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 w insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 w insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 w insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 w insurance`+ `hisp 55-64 wo insurance`,
+                  `total hisp uninsured under 65` = `hisp under 6 wo insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 wo insurance`,
+                  `percent hisp uninsured under 65` = (`total hisp uninsured under 65` / `total hisp under 65`) * 100)
+
+# 2015 data - all the same actions as 2012 data
+acs2015g <- read_json("https://api.census.gov/data/2015/acs1?get=NAME,B27001_001E,B27001_002E,B27001_004E,B27001_005E,B27001_007E,B27001_008E,B27001_010E,B27001_011E,B27001_013E,B27001_014E,B27001_016E,B27001_017E,B27001_019E,B27001_020E,B27001_022E,B27001_023E,B27001_030E,B27001_032E,B27001_033E,B27001_035E,B27001_036E,B27001_038E,B27001_039E,B27001_041E,B27001_042E,B27001_044E,B27001_045E,B27001_047E,B27001_048E,B27001_050E,B27001_051E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2015r <- read_json("https://api.census.gov/data/2015/acs1?get=NAME,B27001H_003E,B27001H_004E,B27001H_006E,B27001H_007E,B27001H_009E,B27001H_010E,B27001H_012E,B27001H_013E,B27001H_015E,B27001H_016E,B27001H_018E,B27001H_019E,B27001H_021E,B27001H_022E,B27001I_003E,B27001I_004E,B27001I_006E,B27001I_007E,B27001I_009E,B27001I_010E,B27001I_012E,B27001I_013E,B27001I_015E,B27001I_016E,B27001I_018E,B27001I_019E,B27001I_021E,B27001I_022E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2015 <- join(acs2015g, acs2015r, by = "V1")
+colnames(acs2015) <- c("Name", "Insurance Status Total", "Total Male", "Male Under 6 w Insurance", "Male Under 6 wo Insurance", "Male Under 6-17 w Insurance", "Male Under 6-17 wo Insurance", "Male Under 18-24 w Insurance", "Male Under 18-24 wo Insurance", "Male Under 25-34 w Insurance", "Male Under 25-34 wo Insurance", "Male Under 35-44 w Insurance", "Male Under 35-44 wo Insurance", "Male Under 45-54 w Insurance", "Male Under 45-54 wo Insurance", "Male Under 55-64 w Insurance", "Male Under 55-64 wo Insurance",
+                       "Total Female", "Female Under 6 w Insurance", "Female Under 6 wo Insurance", "Female Under 6-17 w Insurance", "Female Under 6-17 wo Insurance", "Female Under 18-24 w Insurance", "Female Under 18-24 wo Insurance", "Female Under 25-34 w Insurance", "Female Under 25-34 wo Insurance", "Female Under 35-44 w Insurance", "Female Under 35-44 wo Insurance", "Female Under 45-54 w Insurance", "Female Under 45-54 wo Insurance", "Female Under 55-64 w Insurance", "Female Under 55-64 wo Insurance", "fips code",
+                       "white under 6 w insurance", "white under 6 wo insurance", "white 6-17 w insurance", "white 6-17 wo insurance", "white 18-24 w insurance", "white 18-24 wo insurance", "white 25-34 w insurance", "white 25-34 wo insurance", "white 35-44 w insurance", "white 35-44 wo insurance", "white 45-54 w insurance", "white 45-54 wo insurance", "white 55-64 w insurance", "white 55-64 wo insurance",
+                       "hisp under 6 w insurance", "hisp under 6 wo insurance", "hisp 6-17 w insurance", "hisp 6-17 wo insurance", "hisp 18-24 w insurance", "hisp 18-24 wo insurance", "hisp 25-34 w insurance", "hisp 25-34 wo insurance", "hisp 35-44 w insurance", "hisp 35-44 wo insurance", "hisp 45-54 w insurance", "hisp 45-54 wo insurance", "hisp 55-64 w insurance", "hisp 55-64 wo insurance", "fips code2")
+acs2015 <- acs2015[-1,]
+acs2015 <- acs2015[-52,]
+acs2015[] <- lapply(acs2015[], function(x) as.character(x))
+acs2015[2:62] <- lapply(acs2015[2:62], function(x) as.numeric(x))
+acs2015 <- left_join(acs2015, state_info, by = "Name")
+acs2015$year<- 2015
+acs2015$Year<- "2015"
+acs2015 <- mutate(acs2015,
+                  `total male under 65` = `Male Under 6 w Insurance` + `Male Under 6 wo Insurance` + `Male Under 6-17 w Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 w Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 w Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 w Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 w Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 w Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total male insured under 65` = `Male Under 6 w Insurance` + `Male Under 6-17 w Insurance` + `Male Under 18-24 w Insurance` + `Male Under 25-34 w Insurance` + `Male Under 35-44 w Insurance` + `Male Under 45-54 w Insurance` + `Male Under 55-64 w Insurance`,
+                  `total male uninsured under 65` = `Male Under 6 wo Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total female under 65` = `Female Under 6 w Insurance` + `Female Under 6 wo Insurance` + `Female Under 6-17 w Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 w Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 w Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 w Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 w Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 w Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total female insured under 65` = `Female Under 6 w Insurance` + `Female Under 6-17 w Insurance` + `Female Under 18-24 w Insurance` + `Female Under 25-34 w Insurance` + `Female Under 35-44 w Insurance` + `Female Under 45-54 w Insurance` + `Female Under 55-64 w Insurance`,
+                  `total female uninsured under 65` = `Female Under 6 wo Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total uninsured under 65` = `total male uninsured under 65` + `total female uninsured under 65`,
+                  `percent uninsured under 65` = (`total male uninsured under 65` + `total female uninsured under 65`) / (`total male under 65` + `total female under 65`) * 100,
+                  `percent of males under 65 who are insured` = (`total male insured under 65` / `total male under 65`) * 100,
+                  `percent of males under 65 who are uninsured` = (`total male uninsured under 65` / `total male under 65`) * 100,
+                  `percent of females under 65 who are insured` = (`total female insured under 65` / `total female under 65`) * 100,
+                  `percent of females under 65 who are uninsured` = (`total female uninsured under 65` / `total female under 65`) * 100,
+                  `percent of uninsured under 65 who are male` = (`total male uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of uninsured under 65 who are female` = (`total female uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of insured under 65 who are male` = (`total male insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `percent of insured under 65 who are female` = (`total female insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `total under 65` = `total male under 65` + `total female under 65`,
+                  `total white under 65` = `white under 6 w insurance` + `white under 6 wo insurance`+ `white 6-17 w insurance`+ `white 6-17 wo insurance`+ `white 18-24 w insurance`+ `white 18-24 wo insurance`+ `white 25-34 w insurance`+ `white 25-34 wo insurance`+ `white 35-44 w insurance`+ `white 35-44 wo insurance`+ `white 45-54 w insurance`+ `white 45-54 wo insurance`+ `white 55-64 w insurance`+ `white 55-64 wo insurance`,
+                  `total white uninsured under 65` = `white under 6 wo insurance`+ `white 6-17 wo insurance`+ `white 18-24 wo insurance`+ `white 25-34 wo insurance`+ `white 35-44 wo insurance`+ `white 45-54 wo insurance`+ `white 55-64 wo insurance`,
+                  `percent white uninsured under 65` = (`total white uninsured under 65` / `total white under 65`) * 100,
+                  `total hisp under 65` = `hisp under 6 w insurance`+ `hisp under 6 wo insurance`+ `hisp 6-17 w insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 w insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 w insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 w insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 w insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 w insurance`+ `hisp 55-64 wo insurance`,
+                  `total hisp uninsured under 65` = `hisp under 6 wo insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 wo insurance`,
+                  `percent hisp uninsured under 65` = (`total hisp uninsured under 65` / `total hisp under 65`) * 100)
+
+# 2016 data
+acs2016g <- read_json("https://api.census.gov/data/2016/acs/acs1?get=NAME,B27001_001E,B27001_002E,B27001_004E,B27001_005E,B27001_007E,B27001_008E,B27001_010E,B27001_011E,B27001_013E,B27001_014E,B27001_016E,B27001_017E,B27001_019E,B27001_020E,B27001_022E,B27001_023E,B27001_030E,B27001_032E,B27001_033E,B27001_035E,B27001_036E,B27001_038E,B27001_039E,B27001_041E,B27001_042E,B27001_044E,B27001_045E,B27001_047E,B27001_048E,B27001_050E,B27001_051E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2016r <- read_json("https://api.census.gov/data/2016/acs/acs1?get=NAME,B27001H_003E,B27001H_004E,B27001H_006E,B27001H_007E,B27001H_009E,B27001H_010E,B27001H_012E,B27001H_013E,B27001H_015E,B27001H_016E,B27001H_018E,B27001H_019E,B27001H_021E,B27001H_022E,B27001I_003E,B27001I_004E,B27001I_006E,B27001I_007E,B27001I_009E,B27001I_010E,B27001I_012E,B27001I_013E,B27001I_015E,B27001I_016E,B27001I_018E,B27001I_019E,B27001I_021E,B27001I_022E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+acs2016 <- join(acs2016g, acs2016r, by = "V1")
+colnames(acs2016) <- c("Name", "Insurance Status Total", "Total Male", "Male Under 6 w Insurance", "Male Under 6 wo Insurance", "Male Under 6-17 w Insurance", "Male Under 6-17 wo Insurance", "Male Under 18-24 w Insurance", "Male Under 18-24 wo Insurance", "Male Under 25-34 w Insurance", "Male Under 25-34 wo Insurance", "Male Under 35-44 w Insurance", "Male Under 35-44 wo Insurance", "Male Under 45-54 w Insurance", "Male Under 45-54 wo Insurance", "Male Under 55-64 w Insurance", "Male Under 55-64 wo Insurance",
+                       "Total Female", "Female Under 6 w Insurance", "Female Under 6 wo Insurance", "Female Under 6-17 w Insurance", "Female Under 6-17 wo Insurance", "Female Under 18-24 w Insurance", "Female Under 18-24 wo Insurance", "Female Under 25-34 w Insurance", "Female Under 25-34 wo Insurance", "Female Under 35-44 w Insurance", "Female Under 35-44 wo Insurance", "Female Under 45-54 w Insurance", "Female Under 45-54 wo Insurance", "Female Under 55-64 w Insurance", "Female Under 55-64 wo Insurance", "fips code",
+                       "white under 6 w insurance", "white under 6 wo insurance", "white 6-17 w insurance", "white 6-17 wo insurance", "white 18-24 w insurance", "white 18-24 wo insurance", "white 25-34 w insurance", "white 25-34 wo insurance", "white 35-44 w insurance", "white 35-44 wo insurance", "white 45-54 w insurance", "white 45-54 wo insurance", "white 55-64 w insurance", "white 55-64 wo insurance",
+                       "hisp under 6 w insurance", "hisp under 6 wo insurance", "hisp 6-17 w insurance", "hisp 6-17 wo insurance", "hisp 18-24 w insurance", "hisp 18-24 wo insurance", "hisp 25-34 w insurance", "hisp 25-34 wo insurance", "hisp 35-44 w insurance", "hisp 35-44 wo insurance", "hisp 45-54 w insurance", "hisp 45-54 wo insurance", "hisp 55-64 w insurance", "hisp 55-64 wo insurance", "fips code2")
+acs2016 <- acs2016[-1,]
+acs2016 <- acs2016[-52,]
+acs2016[] <- lapply(acs2016[], function(x) as.character(x))
+acs2016[2:62] <- lapply(acs2016[2:62], function(x) as.numeric(x))
+acs2016 <- left_join(acs2016, state_info, by = "Name")
+acs2016$year<- 2016
+acs2016$Year<- "2016"
+acs2016 <- mutate(acs2016,
+                  `total male under 65` = `Male Under 6 w Insurance` + `Male Under 6 wo Insurance` + `Male Under 6-17 w Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 w Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 w Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 w Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 w Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 w Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total male insured under 65` = `Male Under 6 w Insurance` + `Male Under 6-17 w Insurance` + `Male Under 18-24 w Insurance` + `Male Under 25-34 w Insurance` + `Male Under 35-44 w Insurance` + `Male Under 45-54 w Insurance` + `Male Under 55-64 w Insurance`,
+                  `total male uninsured under 65` = `Male Under 6 wo Insurance` + `Male Under 6-17 wo Insurance` + `Male Under 18-24 wo Insurance` + `Male Under 25-34 wo Insurance` + `Male Under 35-44 wo Insurance` + `Male Under 45-54 wo Insurance` + `Male Under 55-64 wo Insurance`,
+                  `total female under 65` = `Female Under 6 w Insurance` + `Female Under 6 wo Insurance` + `Female Under 6-17 w Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 w Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 w Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 w Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 w Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 w Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total female insured under 65` = `Female Under 6 w Insurance` + `Female Under 6-17 w Insurance` + `Female Under 18-24 w Insurance` + `Female Under 25-34 w Insurance` + `Female Under 35-44 w Insurance` + `Female Under 45-54 w Insurance` + `Female Under 55-64 w Insurance`,
+                  `total female uninsured under 65` = `Female Under 6 wo Insurance` + `Female Under 6-17 wo Insurance` + `Female Under 18-24 wo Insurance` + `Female Under 25-34 wo Insurance` + `Female Under 35-44 wo Insurance` + `Female Under 45-54 wo Insurance` + `Female Under 55-64 wo Insurance`,
+                  `total uninsured under 65` = `total male uninsured under 65` + `total female uninsured under 65`,
+                  `percent uninsured under 65` = (`total male uninsured under 65` + `total female uninsured under 65`) / (`total male under 65` + `total female under 65`) * 100,
+                  `percent of males under 65 who are insured` = (`total male insured under 65` / `total male under 65`) * 100,
+                  `percent of males under 65 who are uninsured` = (`total male uninsured under 65` / `total male under 65`) * 100,
+                  `percent of females under 65 who are insured` = (`total female insured under 65` / `total female under 65`) * 100,
+                  `percent of females under 65 who are uninsured` = (`total female uninsured under 65` / `total female under 65`) * 100,
+                  `percent of uninsured under 65 who are male` = (`total male uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of uninsured under 65 who are female` = (`total female uninsured under 65` / (`total male uninsured under 65` + `total female uninsured under 65`)) * 100,
+                  `percent of insured under 65 who are male` = (`total male insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `percent of insured under 65 who are female` = (`total female insured under 65` / (`total male insured under 65` + `total female insured under 65`)) * 100,
+                  `total under 65` = `total male under 65` + `total female under 65`,
+                  `total white under 65` = `white under 6 w insurance` + `white under 6 wo insurance`+ `white 6-17 w insurance`+ `white 6-17 wo insurance`+ `white 18-24 w insurance`+ `white 18-24 wo insurance`+ `white 25-34 w insurance`+ `white 25-34 wo insurance`+ `white 35-44 w insurance`+ `white 35-44 wo insurance`+ `white 45-54 w insurance`+ `white 45-54 wo insurance`+ `white 55-64 w insurance`+ `white 55-64 wo insurance`,
+                  `total white uninsured under 65` = `white under 6 wo insurance`+ `white 6-17 wo insurance`+ `white 18-24 wo insurance`+ `white 25-34 wo insurance`+ `white 35-44 wo insurance`+ `white 45-54 wo insurance`+ `white 55-64 wo insurance`,
+                  `percent white uninsured under 65` = (`total white uninsured under 65` / `total white under 65`) * 100,
+                  `total hisp under 65` = `hisp under 6 w insurance`+ `hisp under 6 wo insurance`+ `hisp 6-17 w insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 w insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 w insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 w insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 w insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 w insurance`+ `hisp 55-64 wo insurance`,
+                  `total hisp uninsured under 65` = `hisp under 6 wo insurance`+ `hisp 6-17 wo insurance`+ `hisp 18-24 wo insurance`+ `hisp 25-34 wo insurance`+ `hisp 35-44 wo insurance`+ `hisp 45-54 wo insurance`+ `hisp 55-64 wo insurance`,
+                  `percent hisp uninsured under 65` = (`total hisp uninsured under 65` / `total hisp under 65`) * 100)
+
+# combine tables
+all <- bind_rows(acs2012, acs2013, acs2014, acs2015, acs2016)
+```
+
+Theme
+
+```{r}
+agtheme <- theme(axis.ticks.x = element_blank(),
+                 axis.ticks.y = element_blank(),
+                 axis.title = element_text(family = "Segoe UI Semibold", face = "italic", color = "#2d2e2e", size = 9),
+                 axis.title.x = element_text(margin = margin(t = 15)),
+                 axis.title.y = element_text(margin = margin(r= 15)),
+                 axis.text = element_text(family = "Segoe UI Semilight", color = "#999a9c", size = 7),
+                 
+                 legend.key = element_rect(fill = "#f0f0f0"),
+                 legend.background = element_rect(fill = "#f0f0f0"),
+                 legend.text = element_text(family = "Segoe UI Semilight", color = "#6b6b6d", size = 8),
+                 legend.title = element_text(family = "Segoe UI Semibold", color = "#2d2e2e", size = 10),
+                 legend.position = "bottom",
+                 
+                 panel.background = element_rect(fill = "#f0f0f0"),
+                 panel.grid.major = element_line(color = "#dbdde0"),
+                 panel.grid.minor = element_blank(),
+                 
+                 plot.title = element_text(family = "Segoe UI Semibold", size=16, color = "#2d2e2e", face = "bold", margin = margin(r = 10), lineheight = 1.05),
+                 plot.subtitle = element_text(family = "Segoe UI Semilight", size=11, color = "#6b6b6d", margin = margin(t=7, b=15)),
+                 plot.caption = element_text(family = "Segoe UI Semilight", size=8, color = "#6b6b6d", margin = margin(t=5)),
+                 plot.margin = unit(c(.8,1,0.5,1), "cm"),
+                 plot.background = element_rect(fill = "#f0f0f0"))
+```
+
+
+
+```{r include=FALSE}
+# Data for Plot 1
+aggtotal <- aggregate(`total under 65` ~ year + Region, all, sum)
+agguninsured <- aggregate(`total uninsured under 65` ~ year + Region, all, sum)
+joinagg <- join(aggtotal, agguninsured)
+joinagg <- mutate(joinagg, 
+                  `percent uninsured reigon year` = (`total uninsured under 65` / `total under 65`) * 100,
+                  `weighted mean` = (`percent uninsured reigon year` * `total under 65`)/`total under 65`)
+```
+
+Plot 1: A line graph of uninsured rates by region over time, also showing how large the populations affected by each uninsured rate is.
+
+```{r}
+p1 <- ggplot(data = joinagg, aes(x = year, y = `weighted mean`, group = Region, color = Region)) +
+  geom_vline(xintercept = 2014, color = "#6c6c6c", size = 1, linetype = "dashed", alpha = .8) +
+  geom_line(size = 1.2, alpha = .8) +
+  geom_point(aes(size = `total under 65`), alpha = .8) +
+  
+  ylim(6, 22) +
+  
+  labs(title = "Uninsured rates in the South are higher than the rest\nof the US, even after the Affordable Care Act.",
+       subtitle = "Weighted Mean Percent Uninsured Under 65, 2012 - 2016",
+       caption = "Note: Thick grey line indicates implementation of the Affordable Care Act (ACA).\nSource: American Community Survey, 2012-2016", 
+       color = "Region",
+       size = "Under 65\n(in millions)",
+       x = "Year", 
+       y = "Percent Uninsured Under 65") +
+  
+  scale_color_viridis(option = "plasma", discrete = TRUE, alpha = .8) +
+  scale_size_continuous(breaks = c(50000000, 65000000, 80000000, 95000000), labels = c("50M", "65M", "80M", "95M")) +
+  
+  agtheme
+  
+p1
+
+```
+
+```{r include = FALSE}
+# Data for Plot 2
+aggyr <- aggregate(`total under 65` ~ year, all, sum)
+aggunyrm <- aggregate(`total male uninsured under 65` ~ year, all, sum)
+agginyrm <- aggregate(`total male under 65` ~ year, all, sum)
+aggunyrf <- aggregate(`total female uninsured under 65` ~ year, all, sum)
+agginyrf <- aggregate(`total female under 65` ~ year, all, sum)
+joinmf <- join(aggyr, aggunyrm)
+joinmf <- join(joinmf, aggunyrf)
+joinmf <- join(joinmf, agginyrm)
+joinmf <- join(joinmf, agginyrf)
+joinmf <- mutate(joinmf,
+                 `percent of pop male` = (`total male under 65`/`total under 65`) * 100,
+                 `percent of males uninsured` = (`total male uninsured under 65`/`total under 65`) * 100,
+                 `percent of males insured` = `percent of pop male` - `percent of males uninsured`,
+                 `percent of pop female` = (`total female under 65`/`total under 65`) * 100,
+                 `percent of females uninsured` = (`total female uninsured under 65`/`total under 65`) * 100,
+                 `percent of females insured` = `percent of pop female` - `percent of females uninsured`)
+```
+
+Plot 2: Waffle chart showing change between 2013 and 2016 uninsured rates for each gender.
+
+```{r}
+gender_rates_2012 <- c(`Male Uninsured 2012 (9%)` = 9, `Male Insured 2012 (41%)` = 41, `Female Uninsured 2012 (8%)` = 8, `Female Insured 2012 (42%)` = 42)
+g_waffles_2012 <- waffle(gender_rates_2012, rows=5, size=1.5, 
+                         colors=c("#2394b2", "#98c8d5", "#D52432", "#e7c4c6"), 
+                         title="\nBetween 2012 and 2016, both males and females saw\ndecreases in their uninsured rates.\n")
+gender_rates_2016 <- c(`Male Uninsured 2016 (5%)` = 5, `Male Insured 2016 (44%)` = 44, `Female Uninsured 2016 (5%)` = 5, `Female Insured 2016 (46%)` = 46)
+g_waffles_2016 <- waffle(gender_rates_2016, rows=5, size=1.5, 
+                         colors=c("#2394b2", "#98c8d5", "#D52432", "#e7c4c6"), 
+                         xlab="\n1 square = 1 percent\n\nSource: American Community Survey, 2012 & 2016")
+
+multiplot(g_waffles_2012, g_waffles_2016, cols = 1)
+```
+```{r include = FALSE}
+# Data for Plot 3 - waffle chart by race
+aggyr <- aggregate(`total under 65` ~ year, all, sum)
+aggunyrw <- aggregate(`total white uninsured under 65` ~ year, all, sum)
+agginyrw <- aggregate(`total white under 65` ~ year, all, sum)
+aggunyrh <- aggregate(`total hisp uninsured under 65` ~ year, all, sum)
+agginyrh <- aggregate(`total hisp under 65` ~ year, all, sum)
+
+joinwh <- join(aggyr, aggunyrw)
+joinwh <- join(joinwh, aggunyrh)
+joinwh <- join(joinwh, agginyrw)
+joinwh <- join(joinwh, agginyrh)
+joinwh <- mutate(joinwh,
+                 `percent of pop white` = (`total white under 65`/`total under 65`) * 100,
+                 `percent of whites uninsured` = (`total white uninsured under 65`/`total under 65`) * 100,
+                 `percent of whites insured` = `percent of pop white` - `percent of whites uninsured`,
+                 `percent of pop hisp` = (`total hisp under 65`/`total under 65`) * 100,
+                 `percent of hisp uninsured` = (`total hisp uninsured under 65`/`total under 65`) * 100,
+                 `percent of hisp insured` = `percent of pop hisp` - `percent of hisp uninsured`)
+```
+
+Plot 3: Waffle chart showing change between 2013 and 2016 uninsured rates for whites and hispanics.
+
+```{r}
+race_rates_2012 <- c(`White Uninsured 2012 (8%)` = 8, `White Insured 2012 (53%)` = 53, `Hispanic Uninsured 2012 (6%)` = 6, `Hispanic Insured 2012 (13%)` = 13, `Other Race (20%)` = 20)
+r_waffles_2012 <- waffle(race_rates_2012, rows=5, size=1, 
+                         colors=c("#c89f0d", "#d5c899", "#5b582b", "#bcb66f", "#cfcfcf"), 
+                         title="\nBetween 2012 and 2016, both whites and hispanics saw\ndecreases in their uninsured rates.\n")
+
+race_rates_2016 <- c(`White Uninsured 2016 (4%)` = 4, `White Insured 2016 (54%)` = 54, `Hispanic Uninsured 2016 (4%)` = 4, `Hispanic Insured 2016 (16%)` = 16, `Other Race (22%)` = 22)
+r_waffles_2016 <- waffle(race_rates_2016, rows=5, size=1, 
+                         colors=c("#c89f0d", "#d5c899", "#5b582b", "#bcb66f", "#cfcfcf"), 
+                         xlab="\n1 square = 1 percent\n\nSource: American Community Survey, 2012 & 2016")
+
+multiplot(r_waffles_2012, r_waffles_2016, cols = 1)
+```
+```{r include = FALSE}
+# Data for Plot 4
+# acs2012
+```
+
+Plot 4: Treemap of hispanic uninsured rates 2016 by state and region in 2012.
+
+```{r}
+p4 <- ggplot(acs2012, aes(area = `total hisp under 65`, fill = `percent hisp uninsured under 65`, label = Abreviation, subgroup = Region)) +
+  geom_treemap(alpha = .7) +
+  geom_treemap_subgroup_border(color = "#f0f0f0", size = 5) +
+  geom_treemap_subgroup_text(place = "bottom", alpha = 0.5, colour =
+                               "#2d2e2e", fontface = "bold", size = 14, padding.y = grid::unit(2, "mm")) +
+  geom_treemap_text(colour = "white", place = "topleft", reflow = T, padding.x = grid::unit(1.5, "mm"), padding.y = grid::unit(1.5, "mm")) +
+  
+  scale_fill_viridis(option = "plasma", guide = guide_colorbar(reverse=TRUE), alpha = .8) +
+  
+  labs(title = "In 2012, hispanics in southern states had the highest\nuninsured rates.",
+       subtitle = "Percent of uninsured hispanics under 65 by state and region, 2012",
+       caption = "Note: Squares are total hispanic population under 65 in each region.\nSource: American Community Survey, 2012", 
+       fill = "Percent Uninsured\nUnder 65 (Hispanic)") +
+  
+  agtheme
+p4
+```
+```{r include = FALSE}
+# Data for Plot 5
+# acs2016
+```
+
+Plot 5: Treemap of hispanic uninsured rates 2016 by state and region in 2012.
+
+```{r}
+p5 <- ggplot(acs2016, aes(area = `total hisp under 65`, fill = `percent hisp uninsured under 65`, label = Abreviation, subgroup = Region)) +
+  geom_treemap(alpha = .7) +
+  geom_treemap_subgroup_border(color = "#f0f0f0", size = 5) +
+  geom_treemap_subgroup_text(place = "bottom", alpha = 0.5, colour =
+                               "#2d2e2e", fontface = "bold", size = 14, padding.y = grid::unit(2, "mm")) +
+  geom_treemap_text(colour = "white", place = "topleft", reflow = T, padding.x = grid::unit(1.5, "mm"), padding.y = grid::unit(1.5, "mm")) +
+  
+  scale_fill_viridis(option = "plasma", guide = guide_colorbar(reverse=TRUE), alpha = .8) +
+
+  labs(title = "In 2016, uninsured rates for hispanics in the South\nremained high, even as rates fall in other regions.",
+       subtitle = "Percent of uninsured hispanics under 65 by state and region, 2016",
+       caption = "Note: Squares are total hispanic population under 65 in each region.\nSource: American Community Survey, 2016", 
+       fill = "Percent Uninsured\nUnder 65 (Hispanic)") +
+
+  agtheme
+
+p5
+```
+```{r include = FALSE}
+# Data for Plot 6
+states <- map_data("state")
+# acs2016
+```
+
+Plot 6: Map showing variation in uninsured rates across the US in 2016.
+
+```{r warning=FALSE}
+p6 <- ggplot() + 
+  geom_map(data = states, map = states, aes(x = long, y = lat, map_id = region), 
+           fill = "#ffffff", color = "#ffffff", size = 0.15, alpha = .8) +
+  geom_map(data = acs2016, map = states, aes(fill = `percent uninsured under 65`, map_id = region), 
+           color = "#ffffff", size = 0.15, alpha = .8) +
+  scale_fill_viridis(option = "plasma") +
+  
+  theme(axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        
+        legend.key = element_rect(fill = "#f0f0f0"),
+        legend.background = element_rect(fill = "#f0f0f0"),
+        legend.text = element_text(family = "Segoe UI Semilight", color = "#6b6b6d", size = 8),
+        legend.title = element_text(family = "Segoe UI Semibolc", face = "bold", color = "#2d2e2e", size = 10),
+        legend.position = "bottom",
+        
+        panel.background = element_rect(fill = "#f0f0f0"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        
+        plot.title = element_text(family = "Segoe UI Semibold", size=16, color = "#2d2e2e", face = "bold", margin = margin(r = 10), lineheight = 1.05),
+        plot.subtitle = element_text(family = "Segoe UI Semilight", size=11, color = "#6b6b6d", margin = margin(t=7, b=15)),
+        plot.caption = element_text(family = "Segoe UI Semilight", size=8, color = "#6b6b6d", margin = margin(t=5)),
+        plot.margin = unit(c(.8,1.5,0.5,1.5), "cm"),
+        plot.background = element_rect(fill = "#f0f0f0")) +
+  
+  labs(title = "Texas's uninsured rate in 2016 is much higher\nthan any other state.",
+       subtitle = "Percent uninsured under 65 by state, 2016",
+       caption = "Source: American Community Survey, 2016", 
+       fill = "Percent Uninsured\nUnder 65") +
+  
+  coord_map()
+p6
+```
+```{r include = FALSE}
+# comparing BRFSS and ACS data - need to recalculate ACS data for over 18 because BRFSS data are over 18
+
+# ACS 2016 data
+acs2016gender <- read_json("https://api.census.gov/data/2016/acs/acs1?get=NAME,B27001_009E,B27001_011E,B27001_012E,B27001_014E,B27001_015E,B27001_017E,B27001_018E,B27001_020E,B27001_021E,B27001_023E,B27001_024E,B27001_026E,B27001_027E,B27001_029E,B27001_037E,B27001_039E,B27001_040E,B27001_042E,B27001_043E,B27001_045E,B27001_046E,B27001_048E,B27001_049E,B27001_051E,B27001_052E,B27001_054E,B27001_055E,B27001_057E&for=state:*&key=17c33afc69e74a76256559f11768a4005763e816", simplifyVector = TRUE) %>% as.data.frame()
+colnames(acs2016gender) <- c("state", "total_male_1824", "uninsured_male_1824","total_male_2534", "uninsured_male_2534","total_male_3544", "uninsured_male_3544","total_male_4554", "uninsured_male_4554","total_male_5564", "uninsured_male_5564", "total_male_6574", "uninsured_male_6574","total_male_75over", "uninsured_male_75over",
+                             "total_female_1824", "uninsured_female_1824","total_female_2534", "uninsured_female_2534","total_female_3544", "uninsured_female_3544","total_female_4554", "uninsured_female_4554","total_female_5564", "uninsured_female_5564", "total_female_6574", "uninsured_female_6574","total_female_75over", "uninsured_female_75over", "fips")
+acs2016gender <- acs2016gender[-1,]
+acs2016gender <- acs2016gender[-52,]
+acs2016gender[] <- lapply(acs2016gender[], function(x) as.character(x))
+acs2016gender[2:30] <- lapply(acs2016gender[2:30], function(x) as.numeric(x))
+acs2016gender <- left_join(acs2016gender, state_info, by = c("state" = "Name"))
+acs2016gender$year<- 2016
+acs2016gender$Year<- "2016"
+acs2016gender <- mutate(acs2016gender,
+                        total_male_over18 = total_male_1824 + total_male_2534 + total_male_3544 + total_male_4554 + total_male_5564 + total_male_6574 + total_male_75over,
+                        uninsured_male_over18 = uninsured_male_1824 + uninsured_male_2534 + uninsured_male_3544 + uninsured_male_4554 + uninsured_male_5564 + uninsured_male_6574 + uninsured_male_75over,
+                        percent_uninsured_male_over18 = (uninsured_male_over18 / total_male_over18) * 100,
+                        total_female_over18 = total_female_1824 + total_female_2534 + total_female_3544 + total_female_4554 + total_female_5564 + total_female_6574 + total_female_75over,
+                        uninsured_female_over18 = uninsured_female_1824 + uninsured_female_2534 + uninsured_female_3544 + uninsured_female_4554 + uninsured_female_5564 + uninsured_female_6574 + uninsured_female_75over,
+                        percent_uninsured_female_over18 = (uninsured_female_over18 / total_female_over18) * 100,
+                        total_over18 = total_male_over18 + total_female_over18,
+                        uninsured_over18 = uninsured_male_over18 + uninsured_female_over18,
+                        percent_uninsured_over18 = (uninsured_over18/total_over18) * 100)
+
+#get health status data - all from State Health Facts, Kaiser Family Foundation
+health_status <- read_csv("C:\\Users\\Alix\ Gates\\Documents\\UChicago\\Data\ Visualization\\Git\ Hub\ Repo\\health_status.csv")
+
+fair_poor <- data.frame("state" = health_status$state, "fair_poor_health_status" = health_status$fair_poor_health_status, "year" = health_status$year)
+
+#brfss fair/poor data in 2016
+fair_poor_2016 <- filter(fair_poor, year == 2016)
+fair_poor_2016 <- fair_poor_2016[-52,]
+fair_poor_2016 <- mutate(fair_poor_2016,
+                         fair_poor_health_status_percent = fair_poor_health_status * 100)
+
+# Data for Plot 7
+
+join_acs_fairpoor_2016 <- join(acs2016gender, fair_poor_2016, by = "state")
+```
+
+Plot 7: Jitter plot comparing uninsured rates to the percent of the population reporting of fair/poor health status in 2016.
+
+```{r}
+p7 <- ggplot(data = join_acs_fairpoor_2016, aes(x = percent_uninsured_over18, y = fair_poor_health_status_percent)) +
+  geom_jitter(aes(color = Region, size=total_over18), alpha = 0.8) +
+  geom_smooth(se = FALSE, color = "#2d2e2e", alpha = 0.7) +
+  labs(title = "Greater uninsured rates are associated with higher\nreporting of fair/poor health.",
+       subtitle = "Percent Uninsured over 18 and Percent Reporting Fair/Poor Health Status,\nby Region and Population Size, 2016",
+       caption = "Note: All populations are over 18. Each dot represents a state.\nSource: Percent uninsured from American Community Survey, 2016.\nPercent fair/poor from Behavioral Risk Factor Surveillence Survey, 2016.", 
+       color = "Region",
+       size = "Over 18\n(in millions)",
+       x = "Percent Uninsured", 
+       y = "Percent Reporting Fair/Poor Health Status") +
+  
+  scale_color_viridis(option = "plasma", discrete = TRUE, alpha = .8) +
+  scale_size_continuous(breaks = c(5000000, 15000000, 25000000), labels = c("5M", "15M", "25M")) +
+  
+  agtheme +
+  theme(legend.position = "bottom")
+
+p7
+```
+```{r include=FALSE}
+# Data for Plot 8
+states <- map_data("state")
+
+fair_poor_race <- data.frame("state" = health_status$state, "fair_poor_white" = health_status$fair_poor_health_status_white, "fair_poor_black" = health_status$fair_poor_health_status_black, "fair_poor_hisp" = health_status$fair_poor_health_status_hisp, "year" = health_status$year)
+fair_poor_race_2016 <- filter(fair_poor_race, year == 2016)
+fair_poor_race_2016 <- fair_poor_race_2016[-52,]
+fair_poor_race_2016 <- mutate(fair_poor_race_2016,
+                              fair_poor_white_percent = fair_poor_white * 100,
+                              fair_poor_black_percent = fair_poor_black * 100,
+                              fair_poor_hisp_percent = fair_poor_hisp * 100)
+
+fair_poor_race_2016 <- bind_cols(fair_poor_race_2016, state_info)
+```
+
+Plot 8: Map showing variance of fair/poor health status reporting across the US in 2016.
+
+```{r warning=FALSE}
+p8 <- ggplot() + 
+  geom_map(data = states, map = states, aes(x = long, y = lat, map_id = region), 
+           fill = "#ffffff", color = "#ffffff", size = 0.15, alpha = .8) +
+  geom_map(data = join_acs_fairpoor_2016, map = states, aes(fill = fair_poor_health_status_percent, map_id = region), 
+           color = "#ffffff", size = 0.15, alpha = .8) +
+  
+  scale_fill_viridis(option = "plasma") +
+  
+  theme(axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        
+        legend.key = element_rect(fill = "#f0f0f0"),
+        legend.background = element_rect(fill = "#f0f0f0"),
+        legend.text = element_text(family = "Segoe UI Semilight", color = "#6b6b6d", size = 8),
+        legend.title = element_text(family = "Segoe UI Semibolc", face = "bold", color = "#2d2e2e", size = 10),
+        legend.position = "bottom",
+        
+        panel.background = element_rect(fill = "#f0f0f0"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        
+        plot.title = element_text(family = "Segoe UI Semibold", size=16, color = "#2d2e2e", face = "bold", margin = margin(r = 10), lineheight = 1.05),
+        plot.subtitle = element_text(family = "Segoe UI Semilight", size=11, color = "#6b6b6d", margin = margin(t=7, b=15)),
+        plot.caption = element_text(family = "Segoe UI Semilight", size=8, color = "#6b6b6d", margin = margin(t=5)),
+        plot.margin = unit(c(.8,1.5,0.5,1.5), "cm"),
+        plot.background = element_rect(fill = "#f0f0f0")) +
+  
+  labs(title = "Fair or poor health is most often reported in\nArkansas and West Virginia.",
+       subtitle = "Percent reporting fair or poor health status, 2016",
+       caption = "Note: population is over 18.\nSource: Behavioral Risk Factor Surveillance Survey, 2016", 
+       fill = "Percent Reporting Fair or Poor Health") +
+  
+  coord_map()
+
+p8
+```
+```{r include=FALSE}
+# Data for Plot 9
+
+fair_poor_race_2016_gathered <- gather(fair_poor_race_2016, key = "race", value = "percents", fair_poor_white_percent:fair_poor_hisp_percent)
+```
+
+Plot 9: Bar graph comparing fair/poor health status reporting by race per region in 2016.
+
+```{r warning=FALSE}
+p9 <- ggplot(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, fill = race), position = "dodge") +
+  geom_bar(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, fill = race), position = "dodge", stat = "identity") +
+  
+  labs(title = "Hispanics report having fair or poor health more\noften than Blacks or Whites.",
+       subtitle = "Percent Reporting Fair or Poor Health Status by Race and Region, 2016",
+       caption = "Note: population is over 18. States with insufficient data for Blacks and Hispanics were removed.\nSource: Behavioral Risk Factor Surveillance Survey, 2016", 
+       fill = "Race",
+       x = "Region", 
+       y = "Percent Reporting Fair/Poor Health") +
+  
+  #scale_fill_viridis(option = "plasma", discrete = TRUE, labels = c("Black", "Hispanic", "White")) +
+  scale_fill_manual(values = c("#CC4678", "#E1E807", "#0D0888"), labels = c("Black", "Hispanic", "White")) +
+  agtheme + 
+  theme(axis.text.x = element_text(color = "#6b6b6d", size = 10)) +
+  
+  ylim(0, 40)
+
+p9
+```
