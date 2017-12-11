@@ -1,7 +1,7 @@
 ---
-title: "Health Policy Data Visualizations Portfolio"
+title: "Alexandra Gates Health Policy Data Visualizations: A Static Graph Portfolio"
 author: "Alexandra Gates"
-date: "October 29, 2017"
+date: "December 11, 2017"
 output: html_document
 ---
 
@@ -592,8 +592,7 @@ p7 <- ggplot(data = join_acs_fairpoor_2016, aes(x = percent_uninsured_over18, y 
 p7
 ```
 ```{r include=FALSE}
-# Data for Plot 8
-states <- map_data("state")
+# Data for Plot 9
 
 fair_poor_race <- data.frame("state" = health_status$state, "fair_poor_white" = health_status$fair_poor_health_status_white, "fair_poor_black" = health_status$fair_poor_health_status_black, "fair_poor_hisp" = health_status$fair_poor_health_status_hisp, "year" = health_status$year)
 fair_poor_race_2016 <- filter(fair_poor_race, year == 2016)
@@ -604,59 +603,14 @@ fair_poor_race_2016 <- mutate(fair_poor_race_2016,
                               fair_poor_hisp_percent = fair_poor_hisp * 100)
 
 fair_poor_race_2016 <- bind_cols(fair_poor_race_2016, state_info)
-```
-
-Plot 8: Map showing variance of fair/poor health status reporting across the US in 2016.
-
-```{r warning=FALSE}
-p8 <- ggplot() + 
-  geom_map(data = states, map = states, aes(x = long, y = lat, map_id = region), 
-           fill = "#ffffff", color = "#ffffff", size = 0.15, alpha = .8) +
-  geom_map(data = join_acs_fairpoor_2016, map = states, aes(fill = fair_poor_health_status_percent, map_id = region), 
-           color = "#ffffff", size = 0.15, alpha = .8) +
-  
-  scale_fill_viridis(option = "plasma") +
-  
-  theme(axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.title = element_blank(),
-        axis.text = element_blank(),
-        
-        legend.key = element_rect(fill = "#f0f0f0"),
-        legend.background = element_rect(fill = "#f0f0f0"),
-        legend.text = element_text(family = "Segoe UI Semilight", color = "#6b6b6d", size = 8),
-        legend.title = element_text(family = "Segoe UI Semibolc", face = "bold", color = "#2d2e2e", size = 10),
-        legend.position = "bottom",
-        
-        panel.background = element_rect(fill = "#f0f0f0"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        
-        plot.title = element_text(family = "Segoe UI Semibold", size=16, color = "#2d2e2e", face = "bold", margin = margin(r = 10), lineheight = 1.05),
-        plot.subtitle = element_text(family = "Segoe UI Semilight", size=11, color = "#6b6b6d", margin = margin(t=7, b=15)),
-        plot.caption = element_text(family = "Segoe UI Semilight", size=8, color = "#6b6b6d", margin = margin(t=5)),
-        plot.margin = unit(c(.8,1.5,0.5,1.5), "cm"),
-        plot.background = element_rect(fill = "#f0f0f0")) +
-  
-  labs(title = "Fair or poor health is most often reported in\nArkansas and West Virginia.",
-       subtitle = "Percent reporting fair or poor health status, 2016",
-       caption = "Note: population is over 18.\nSource: Behavioral Risk Factor Surveillance Survey, 2016", 
-       fill = "Percent Reporting Fair or Poor Health") +
-  
-  coord_map()
-
-p8
-```
-```{r include=FALSE}
-# Data for Plot 9
 
 fair_poor_race_2016_gathered <- gather(fair_poor_race_2016, key = "race", value = "percents", fair_poor_white_percent:fair_poor_hisp_percent)
 ```
 
-Plot 9: Bar graph comparing fair/poor health status reporting by race per region in 2016.
+Plot 8: Bar graph comparing fair/poor health status reporting by race per region in 2016.
 
 ```{r warning=FALSE}
-p9 <- ggplot(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, fill = race), position = "dodge") +
+p8 <- ggplot(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, fill = race), position = "dodge") +
   geom_bar(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, fill = race), position = "dodge", stat = "identity") +
   
   labs(title = "Hispanics report having fair or poor health more\noften than Blacks or Whites.",
@@ -673,5 +627,5 @@ p9 <- ggplot(data = fair_poor_race_2016_gathered, aes(x = Region, y = percents, 
   
   ylim(0, 40)
 
-p9
+p8
 ```
