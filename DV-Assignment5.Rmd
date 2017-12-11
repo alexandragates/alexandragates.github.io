@@ -1,5 +1,5 @@
 ---
-title: "Alexandra Gates Health Policy Data Visualizations: A Static Graph Portfolio"
+title: "Health Policy Data Visualizations: A Static Graph Portfolio"
 author: "Alexandra Gates"
 date: "December 11, 2017"
 output: html_document
